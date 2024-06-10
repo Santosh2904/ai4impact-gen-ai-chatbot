@@ -18,6 +18,30 @@ import { getColumnDefinition } from "./columns";
 import { Utils } from "../../common/utils";
 import { useCollection } from "@cloudscape-design/collection-hooks";
 // import { DocumentsResult } from "../../../API";
+import { S3 } from 'aws-sdk';
+
+const s3 = new S3();
+
+const listDocuments = async () => { // <--- Add this function
+  const response = await s3.listObjectsV2({ Bucket: 'your-bucket-name' }).promise();
+  const documents = response.Contents.map(item => ({
+    key: item.Key,
+    name: item.Key.split('/').pop(),
+    size: item.Size,
+    lastModified: item.LastModified,
+    folder: item.Key.includes('/') ? item.Key.split('/')[0] : 'root' // Group by folder
+  }));
+  const folders = {};
+  documents.forEach(doc => {
+    if (!folders[doc.folder]) folders[doc.folder] = [];
+    folders[doc.folder].push(doc);
+  });
+  return folders; // Return grouped folders
+};
+
+const deleteDocument = async (key) => { // <--- Add this function
+  await s3.deleteObject({ Bucket: 'your-bucket-name', Key: key }).promise();
+};
 
 export interface DocumentsTabProps {
   // workspaceId?: string;
@@ -33,6 +57,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const [pages, setPages] = useState<any[]>([]);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [showModalDelete, setShowModalDelete] = useState(false);
+  const [folders, setFolders] = useState({});
 
   const { items, collectionProps, paginationProps } = useCollection(pages, {
     filtering: {
@@ -72,6 +97,8 @@ export default function DocumentsTab(props: DocumentsTabProps) {
             return [...current, result];
           }
         });
+        const folders = await listDocuments();
+        setFolders(folders);
       } catch (error) {
         console.error(Utils.getErrorMessage(error));
       }
@@ -267,6 +294,12 @@ export default function DocumentsTab(props: DocumentsTabProps) {
           )
         }
       />
+      {Object.keys(folders).map(folder => ( // <--- Add this section
+        <div key={folder}>
+          <h2>{folder}</h2>
+          <Table columnDefinitions={columnDefinitions} items={folders[folder]} loading={loading} />
+        </div>
+        ))}
     </>
   );
 }
