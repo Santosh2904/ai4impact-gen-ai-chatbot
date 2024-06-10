@@ -9,8 +9,9 @@ import {
   ProgressBar,
   ProgressBarProps,
   SpaceBetween,
+  Select, // Add Select component
 } from "@cloudscape-design/components";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../../common/app-context";
 import { ApiClient } from "../../common/api-client/api-client";
 import { Utils } from "../../common/utils";
@@ -85,7 +86,8 @@ export default function DataFileUpload() {
   const [currentFileName, setCurrentFileName] = useState<string>("");
   const [uploadPanelDismissed, setUploadPanelDismissed] =
     useState<boolean>(false);
-  const [folderPath, setFolderPath] = useState<string>("");
+  const [folders, setFolders] = useState<string[]>([]); // State to hold folder names
+  const [selectedFolder, setSelectedFolder] = useState<string>(""); // State to hold selected folder
 
   const onSetFiles = (files: File[]) => {
     const errors: string[] = [];
@@ -115,8 +117,29 @@ export default function DataFileUpload() {
     setFilesToUpload(filesToUpload);
   };
 
+  useEffect(() => {
+    const fetchFolders = async () => {
+      try {
+        const result = await apiClient.knowledgeManagement.getDocuments();
+        const folderNames = result.Contents.reduce((acc: string[], item: any) => {
+          const parts = item.Key.split('/');
+          if (parts.length > 1) {
+            const folder = parts.slice(0, -1).join('/');
+            if (!acc.includes(folder)) acc.push(folder);
+          }
+          return acc;
+        }, []);
+        setFolders(folderNames);
+      } catch (error) {
+        console.error(Utils.getErrorMessage(error));
+      }
+    };
+
+    fetchFolders();
+  }, [apiClient]);
+
   const onUpload = async () => {
-    if (!appContext) return;
+    if (!appContext || !selectedFolder) return;
     setUploadingStatus("in-progress");
     setUploadProgress(0);
     setUploadingIndex(1);
@@ -136,7 +159,7 @@ export default function DataFileUpload() {
         const fileExtension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
         const fileType = mimeTypes[fileExtension];
         const result = await apiClient.knowledgeManagement.getUploadURL(
-          `${folderPath}/${file.name}`,
+          `${selectedFolder}/${file.name}`,
           fileType
         );
 
@@ -206,14 +229,14 @@ export default function DataFileUpload() {
         <Container>
           <SpaceBetween size="l">
             <FormField
-              label="Folder Path"
-              description="Specify the folder path in which the files will be uploaded."
+              label="Select Folder"
+              description="Select the folder in which the files will be uploaded."
             >
-              <input
-                type="text"
-                value={folderPath}
-                onChange={(e) => setFolderPath(e.target.value)}
-                placeholder="Enter folder path"
+              <Select
+                selectedOption={selectedFolder}
+                onChange={({ detail }) => setSelectedFolder(detail.selectedOption.value)}
+                options={folders.map(folder => ({ label: folder, value: folder }))}
+                placeholder="Select a folder"
               />
             </FormField>
             <FormField>

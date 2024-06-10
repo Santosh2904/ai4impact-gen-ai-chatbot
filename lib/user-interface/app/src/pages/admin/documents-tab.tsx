@@ -7,7 +7,6 @@ import {
   Header,
   Modal,
   Spinner,
-  FormField,
 } from "@cloudscape-design/components";
 import { useCallback, useContext, useEffect, useState } from "react";
 import RouterButton from "../../components/wrappers/router-button";
@@ -32,8 +31,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const [pages, setPages] = useState<any[]>([]);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [showModalDelete, setShowModalDelete] = useState(false);
-  const [folders, setFolders] = useState<{ [key: string]: any }>({});
-  const [folderPath, setFolderPath] = useState<string>("");
+  const [folders, setFolders] = useState<{ [key: string]: any }>({}); // State to hold folder structure
 
   const { items, collectionProps, paginationProps } = useCollection(pages, {
     filtering: {
@@ -60,7 +58,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const parseFolderStructure = (contents: any[]) => {
     const folderMap: { [key: string]: any } = {};
     contents.forEach((item) => {
-      const parts = item.Key.split("/");
+      const parts = item.key.split("/");
       let currentLevel = folderMap;
       parts.forEach((part, index) => {
         if (!currentLevel[part]) {
@@ -139,7 +137,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     setShowModalDelete(false);
     const apiClient = new ApiClient(appContext);
     await Promise.all(
-      selectedItems.map((s) => apiClient.knowledgeManagement.deleteFile(s.Key!))
+      selectedItems.map((s) => apiClient.knowledgeManagement.deleteFile(s.key))
     );
     await getDocuments({ pageIndex: currentPageIndex });
     setSelectedItems([]);
@@ -180,17 +178,6 @@ export default function DocumentsTab(props: DocumentsTabProps) {
 
   return (
     <>
-      <FormField
-        label="Folder Path"
-        description="Specify the folder path to view files."
-      >
-        <input
-          type="text"
-          value={folderPath}
-          onChange={(e) => setFolderPath(e.target.value)}
-          placeholder="Enter folder path"
-        />
-      </FormField>
       <Modal
         onDismiss={() => setShowModalDelete(false)}
         visible={showModalDelete}
@@ -211,7 +198,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
       >
         Do you want to delete{" "}
         {selectedItems.length == 1
-          ? `file ${selectedItems[0].Key!}?`
+          ? `file ${selectedItems[0].key}?`
           : `${selectedItems.length} files?`}
       </Modal>
       <Table
@@ -225,8 +212,8 @@ export default function DocumentsTab(props: DocumentsTabProps) {
           setSelectedItems(detail.selectedItems);
         }}
         selectedItems={selectedItems}
-        items={folders[folderPath]?.Contents || []} // Display items based on folder path
-        trackBy="Key"
+        items={folders} // Automatically display the folder contents
+        trackBy="key"
         header={
           <Header
             actions={
