@@ -22,9 +22,8 @@
     "noImplicitAny": false,
 
     /* Type declarations */
-    "typeRoots": ["./node_modules/@types", "./src/types"],
-    "types": ["aws-sdk", "antd"]
-    
+    "typeRoots": ["./node_modules/@types"]
+
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
