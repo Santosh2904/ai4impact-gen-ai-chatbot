@@ -19,7 +19,12 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+
+    /* Type declarations */
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["aws-sdk", "antd"]
+    
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
