@@ -40,26 +40,29 @@ const fileExtensions = new Set([
 ]);
 
 const mimeTypes = {
-  '.pdf': 'application/pdf',
-  '.doc': 'application/msword',
-  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  '.xls': 'application/vnd.ms-excel',
-  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  '.ppt': 'application/vnd.ms-powerpoint',
-  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  '.txt': 'text/plain',
-  '.csv': 'text/csv',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.mp3': 'audio/mpeg',
-  '.wav': 'audio/wav',
-  '.mp4': 'video/mp4',
-  '.zip': 'application/zip',
-  '.rar': 'application/x-rar-compressed',
-  '.tar': 'application/x-tar'
+  ".pdf": "application/pdf",
+  ".doc": "application/msword",
+  ".docx":
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx":
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".ppt": "application/vnd.ms-powerpoint",
+  ".pptx":
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".txt": "text/plain",
+  ".csv": "text/csv",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".mp4": "video/mp4",
+  ".zip": "application/zip",
+  ".rar": "application/x-rar-compressed",
+  ".tar": "application/x-tar",
 };
 
 export default function DataFileUpload() {
@@ -69,19 +72,20 @@ export default function DataFileUpload() {
   const [files, setFiles] = useState<File[]>([]);
   const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
   const [fileErrors, setFileErrors] = useState<string[]>([]);
-  const [globalError, setGlobalError] = useState<string | undefined>(undefined);
-  const [uploadError, setUploadError] = useState<string | undefined>(undefined);
+  const [globalError, setGlobalError] = useState<string | undefined>(
+    undefined
+  );
+  const [uploadError, setUploadError] = useState<string | undefined>(
+    undefined
+  );
   const [uploadingStatus, setUploadingStatus] =
     useState<FlashbarProps.Type>("info");
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadingIndex, setUploadingIndex] = useState<number>(0);
   const [currentFileName, setCurrentFileName] = useState<string>("");
-  const [uploadPanelDismissed, setUploadPanelDismissed] = useState<boolean>(false);
-  const [folderPath, setFolderPath] = useState<string>(''); // Added state for folder path
-
-  const handleFolderPathChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFolderPath(event.target.value); // Added function to handle folder path changes
-  };  
+  const [uploadPanelDismissed, setUploadPanelDismissed] =
+    useState<boolean>(false);
+  const [folderPath, setFolderPath] = useState<string>("");
 
   const onSetFiles = (files: File[]) => {
     const errors: string[] = [];
@@ -129,9 +133,12 @@ export default function DataFileUpload() {
       let fileUploaded = 0;
 
       try {
-        const fileExtension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+        const fileExtension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
         const fileType = mimeTypes[fileExtension];
-        const result = await apiClient.knowledgeManagement.getUploadURL(`${folderPath}/${file.name}`, fileType); // Modified to include folder path
+        const result = await apiClient.knowledgeManagement.getUploadURL(
+          `${folderPath}/${file.name}`,
+          fileType
+        );
 
         try {
           await uploader.upload(
@@ -199,13 +206,13 @@ export default function DataFileUpload() {
         <Container>
           <SpaceBetween size="l">
             <FormField
-              label="Folder Path" // Added form field for folder path
+              label="Folder Path"
               description="Specify the folder path in which the files will be uploaded."
             >
               <input
                 type="text"
                 value={folderPath}
-                onChange={handleFolderPathChange} // Linked the input to the folderPath state
+                onChange={(e) => setFolderPath(e.target.value)}
                 placeholder="Enter folder path"
               />
             </FormField>

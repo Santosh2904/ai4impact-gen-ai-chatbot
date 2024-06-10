@@ -7,7 +7,7 @@ import {
   Header,
   Modal,
   Spinner,
-  FormField, // Ensure FormField is imported
+  FormField,
 } from "@cloudscape-design/components";
 import { useCallback, useContext, useEffect, useState } from "react";
 import RouterButton from "../../components/wrappers/router-button";
@@ -18,10 +18,8 @@ import { AppContext } from "../../common/app-context";
 import { getColumnDefinition } from "./columns";
 import { Utils } from "../../common/utils";
 import { useCollection } from "@cloudscape-design/collection-hooks";
-// import { DocumentsResult } from "../../../API";
 
 export interface DocumentsTabProps {
-  // workspaceId?: string;
   documentType: RagDocumentType;
 }
 
@@ -34,8 +32,8 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const [pages, setPages] = useState<any[]>([]);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [showModalDelete, setShowModalDelete] = useState(false);
-  const [folders, setFolders] = useState<{ [key: string]: any }>({}); // Updated state type for folders
-  const [folderPath, setFolderPath] = useState<string>(''); // Added state for folder path
+  const [folders, setFolders] = useState<{ [key: string]: any }>({});
+  const [folderPath, setFolderPath] = useState<string>("");
 
   const { items, collectionProps, paginationProps } = useCollection(pages, {
     filtering: {
@@ -62,7 +60,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const parseFolderStructure = (contents: any[]) => {
     const folderMap: { [key: string]: any } = {};
     contents.forEach((item) => {
-      const parts = item.Key.split('/');
+      const parts = item.Key.split("/");
       let currentLevel = folderMap;
       parts.forEach((part, index) => {
         if (!currentLevel[part]) {
@@ -79,7 +77,10 @@ export default function DocumentsTab(props: DocumentsTabProps) {
       setLoading(true);
 
       try {
-        const result = await apiClient.knowledgeManagement.getDocuments(params?.continuationToken, params?.pageIndex);
+        const result = await apiClient.knowledgeManagement.getDocuments(
+          params?.continuationToken,
+          params?.pageIndex
+        );
         setPages((current) => {
           if (typeof params.pageIndex !== "undefined") {
             current[params.pageIndex - 1] = result;
@@ -88,7 +89,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
             return [...current, result];
           }
         });
-        setFolders(parseFolderStructure(result.Contents)); // Update folders state
+        setFolders(parseFolderStructure(result.Contents));
       } catch (error) {
         console.error(Utils.getErrorMessage(error));
       }
@@ -102,7 +103,8 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   }, [getDocuments]);
 
   const onNextPageClick = async () => {
-    const continuationToken = pages[currentPageIndex - 1]?.NextContinuationToken;
+    const continuationToken =
+      pages[currentPageIndex - 1]?.NextContinuationToken;
 
     if (continuationToken) {
       if (pages.length <= currentPageIndex) {
@@ -122,7 +124,8 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     if (currentPageIndex <= 1) {
       await getDocuments({ pageIndex: currentPageIndex });
     } else {
-      const continuationToken = pages[currentPageIndex - 2]?.NextContinuationToken!;
+      const continuationToken =
+        pages[currentPageIndex - 2]?.NextContinuationToken!;
       await getDocuments({ continuationToken });
     }
   };
@@ -162,7 +165,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     return () => clearInterval(interval);
   });
 
-  const syncKendra = async () => {    
+  const syncKendra = async () => {
     if (syncing) {
       return;
     }
@@ -173,18 +176,18 @@ export default function DocumentsTab(props: DocumentsTabProps) {
       console.log(error);
       setSyncing(false);
     }
-  }
+  };
 
   return (
     <>
       <FormField
-        label="Folder Path" // Added form field for folder path
+        label="Folder Path"
         description="Specify the folder path to view files."
       >
         <input
           type="text"
           value={folderPath}
-          onChange={(e) => setFolderPath(e.target.value)} // Handle folder path changes
+          onChange={(e) => setFolderPath(e.target.value)}
           placeholder="Enter folder path"
         />
       </FormField>
@@ -229,10 +232,8 @@ export default function DocumentsTab(props: DocumentsTabProps) {
             actions={
               <SpaceBetween direction="horizontal" size="xs">
                 <Button iconName="refresh" onClick={refreshPage} />
-                <RouterButton
-                  href={`/admin/add-data`}
-                >
-                  {'Add Files'}
+                <RouterButton href={`/admin/add-data`}>
+                  {"Add Files"}
                 </RouterButton>
                 <Button
                   variant="primary"
@@ -240,7 +241,8 @@ export default function DocumentsTab(props: DocumentsTabProps) {
                   onClick={() => {
                     if (selectedItems.length > 0) setShowModalDelete(true);
                   }}
-                  data-testid="submit">
+                  data-testid="submit"
+                >
                   Delete
                 </Button>
                 <Button
