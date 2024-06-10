@@ -18,30 +18,6 @@ import { getColumnDefinition } from "./columns";
 import { Utils } from "../../common/utils";
 import { useCollection } from "@cloudscape-design/collection-hooks";
 // import { DocumentsResult } from "../../../API";
-import { S3 } from 'aws-sdk';
-
-const s3 = new S3();
-
-const listDocuments = async () => { // <--- Add this function
-  const response = await s3.listObjectsV2({ Bucket: 'your-bucket-name' }).promise();
-  const documents = response.Contents.map(item => ({
-    key: item.Key,
-    name: item.Key.split('/').pop(),
-    size: item.Size,
-    lastModified: item.LastModified,
-    folder: item.Key.includes('/') ? item.Key.split('/')[0] : 'root' // Group by folder
-  }));
-  const folders = {};
-  documents.forEach(doc => {
-    if (!folders[doc.folder]) folders[doc.folder] = [];
-    folders[doc.folder].push(doc);
-  });
-  return folders; // Return grouped folders
-};
-
-const deleteDocument = async (key) => { // <--- Add this function
-  await s3.deleteObject({ Bucket: 'your-bucket-name', Key: key }).promise();
-};
 
 export interface DocumentsTabProps {
   // workspaceId?: string;
@@ -57,7 +33,8 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const [pages, setPages] = useState<any[]>([]);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [showModalDelete, setShowModalDelete] = useState(false);
-  const [folders, setFolders] = useState({});
+  const [folders, setFolders] = useState<any[]>([]); // Added state for folders
+  const [folderPath, setFolderPath] = useState<string>(''); // Added state for folder path
 
   const { items, collectionProps, paginationProps } = useCollection(pages, {
     filtering: {
@@ -81,14 +58,27 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     selection: {},
   });
 
+  const parseFolderStructure = (contents: any[]) => {
+    const folderMap: { [key: string]: any } = {};
+    contents.forEach((item) => {
+      const parts = item.Key.split('/');
+      let currentLevel = folderMap;
+      parts.forEach((part, index) => {
+        if (!currentLevel[part]) {
+          currentLevel[part] = index === parts.length - 1 ? item : {};
+        }
+        currentLevel = currentLevel[part];
+      });
+    });
+    return folderMap;
+  };
+
   const getDocuments = useCallback(
     async (params: { continuationToken?: string; pageIndex?: number }) => {
       setLoading(true);
 
-
       try {
-        const result = await apiClient.knowledgeManagement.getDocuments(params?.continuationToken, params?.pageIndex)
-
+        const result = await apiClient.knowledgeManagement.getDocuments(params?.continuationToken, params?.pageIndex);
         setPages((current) => {
           if (typeof params.pageIndex !== "undefined") {
             current[params.pageIndex - 1] = result;
@@ -97,18 +87,14 @@ export default function DocumentsTab(props: DocumentsTabProps) {
             return [...current, result];
           }
         });
-        const folders = await listDocuments();
-        setFolders(folders);
+        setFolders(parseFolderStructure(result.Contents)); // Update folders state
       } catch (error) {
         console.error(Utils.getErrorMessage(error));
       }
-
-      console.log(pages);
       setLoading(false);
     },
     [appContext, props.documentType]
   );
-
 
   useEffect(() => {
     getDocuments({});
@@ -125,7 +111,6 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     }
   };
 
-
   const onPreviousPageClick = async () => {
     setCurrentPageIndex((current) =>
       Math.max(1, Math.min(pages.length - 1, current - 1))
@@ -133,7 +118,6 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   };
 
   const refreshPage = async () => {
-    // console.log(pages[Math.min(pages.length - 1, currentPageIndex - 1)]?.Contents!)
     if (currentPageIndex <= 1) {
       await getDocuments({ pageIndex: currentPageIndex });
     } else {
@@ -141,7 +125,6 @@ export default function DocumentsTab(props: DocumentsTabProps) {
       await getDocuments({ continuationToken });
     }
   };
-
 
   const columnDefinitions = getColumnDefinition(props.documentType);
 
@@ -155,7 +138,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
       selectedItems.map((s) => apiClient.knowledgeManagement.deleteFile(s.Key!))
     );
     await getDocuments({ pageIndex: currentPageIndex });
-    setSelectedItems([])
+    setSelectedItems([]);
     setLoading(false);
   };
 
@@ -180,43 +163,53 @@ export default function DocumentsTab(props: DocumentsTabProps) {
 
   const syncKendra = async () => {    
     if (syncing) {
-      // setSyncing(false)
       return;
     }
     setSyncing(true);
     try {
       await apiClient.knowledgeManagement.syncKendra();
-      
     } catch (error) {
       console.log(error);
-      setSyncing(false)
+      setSyncing(false);
     }
   }
 
   return (
-    <><Modal
-      onDismiss={() => setShowModalDelete(false)}
-      visible={showModalDelete}
-      footer={
-        <Box float="right">
-          <SpaceBetween direction="horizontal" size="xs">
-            {" "}
-            <Button variant="link" onClick={() => setShowModalDelete(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={deleteSelectedFiles}>
-              Ok
-            </Button>
-          </SpaceBetween>{" "}
-        </Box>
-      }
-      header={"Delete session" + (selectedItems.length > 1 ? "s" : "")}
-    >
-      Do you want to delete{" "}
-      {selectedItems.length == 1
-        ? `file ${selectedItems[0].Key!}?`
-        : `${selectedItems.length} files?`}
-    </Modal>
+    <>
+      <FormField
+        label="Folder Path" // Added form field for folder path
+        description="Specify the folder path to view files."
+      >
+        <input
+          type="text"
+          value={folderPath}
+          onChange={(e) => setFolderPath(e.target.value)} // Handle folder path changes
+          placeholder="Enter folder path"
+        />
+      </FormField>
+      <Modal
+        onDismiss={() => setShowModalDelete(false)}
+        visible={showModalDelete}
+        footer={
+          <Box float="right">
+            <SpaceBetween direction="horizontal" size="xs">
+              {" "}
+              <Button variant="link" onClick={() => setShowModalDelete(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={deleteSelectedFiles}>
+                Ok
+              </Button>
+            </SpaceBetween>{" "}
+          </Box>
+        }
+        header={"Delete session" + (selectedItems.length > 1 ? "s" : "")}
+      >
+        Do you want to delete{" "}
+        {selectedItems.length == 1
+          ? `file ${selectedItems[0].Key!}?`
+          : `${selectedItems.length} files?`}
+      </Modal>
       <Table
         {...collectionProps}
         loading={loading}
@@ -228,7 +221,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
           setSelectedItems(detail.selectedItems);
         }}
         selectedItems={selectedItems}
-        items={pages[Math.min(pages.length - 1, currentPageIndex - 1)]?.Contents!}
+        items={folders[folderPath]?.Contents || []} // Display items based on folder path
         trackBy="Key"
         header={
           <Header
@@ -236,7 +229,6 @@ export default function DocumentsTab(props: DocumentsTabProps) {
               <SpaceBetween direction="horizontal" size="xs">
                 <Button iconName="refresh" onClick={refreshPage} />
                 <RouterButton
-                  // href={`/rag/workspaces/add-data?workspaceId=${props.workspaceId}&tab=${props.documentType}`}
                   href={`/admin/add-data`}
                 >
                   {'Add Files'}
@@ -256,7 +248,6 @@ export default function DocumentsTab(props: DocumentsTabProps) {
                   onClick={() => {
                     syncKendra();
                   }}
-                // data-testid="submit"
                 >
                   {syncing ? (
                     <>
@@ -277,7 +268,6 @@ export default function DocumentsTab(props: DocumentsTabProps) {
         empty={
           <TableEmptyState
             resourceName={"File"}
-            // createHref={`/rag/workspaces/add-data?workspaceId=${props.workspaceId}&tab=${props.documentType}`}
             createHref={`/admin/add-data`}
             createText={"Add Files"}
           />
@@ -294,12 +284,6 @@ export default function DocumentsTab(props: DocumentsTabProps) {
           )
         }
       />
-      {Object.keys(folders).map(folder => ( // <--- Add this section
-        <div key={folder}>
-          <h2>{folder}</h2>
-          <Table columnDefinitions={columnDefinitions} items={folders[folder]} loading={loading} />
-        </div>
-        ))}
     </>
   );
 }

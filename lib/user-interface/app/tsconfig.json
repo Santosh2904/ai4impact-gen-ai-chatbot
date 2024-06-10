@@ -19,10 +19,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": false,
-
-    /* Type declarations */
-    "typeRoots": ["./node_modules/@types"]
+    "noImplicitAny": false
 
   },
   "include": ["src"],

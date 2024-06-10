@@ -17,7 +17,6 @@ import { Utils } from "../../common/utils";
 import { FileUploader } from "../../common/file-uploader";
 import { useNavigate } from "react-router-dom";
 
-
 const fileExtensions = new Set([
   ".csv",
   ".doc",
@@ -77,8 +76,12 @@ export default function DataFileUpload() {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadingIndex, setUploadingIndex] = useState<number>(0);
   const [currentFileName, setCurrentFileName] = useState<string>("");
-  const [uploadPanelDismissed, setUploadPanelDismissed] =
-    useState<boolean>(false);
+  const [uploadPanelDismissed, setUploadPanelDismissed] = useState<boolean>(false);
+  const [folderPath, setFolderPath] = useState<string>(''); // Added state for folder path
+
+  const handleFolderPathChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFolderPath(event.target.value); // Added function to handle folder path changes
+  };  
 
   const onSetFiles = (files: File[]) => {
     const errors: string[] = [];
@@ -116,7 +119,6 @@ export default function DataFileUpload() {
     setUploadPanelDismissed(false);
 
     const uploader = new FileUploader();
-    // const apiClient = new ApiClient(appContext);
     const totalSize = filesToUpload.reduce((acc, file) => acc + file.size, 0);
     let accumulator = 0;
     let hasError = false;
@@ -127,15 +129,14 @@ export default function DataFileUpload() {
       let fileUploaded = 0;
 
       try {
-        
         const fileExtension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
         const fileType = mimeTypes[fileExtension];
-        const result = await apiClient.knowledgeManagement.getUploadURL(file.name,fileType);
-        // console.log(result);      
+        const result = await apiClient.knowledgeManagement.getUploadURL(`${folderPath}/${file.name}`, fileType); // Modified to include folder path
+
         try {
           await uploader.upload(
             file,
-            result, //.data!.getUploadFileURL!,
+            result,
             fileType,
             (uploaded: number) => {
               fileUploaded = uploaded;
@@ -175,11 +176,6 @@ export default function DataFileUpload() {
     return "in-progress";
   };
 
-  /*const hasReadyWorkspace =
-    typeof props.data.workspace?.value !== "undefined" &&
-    typeof props.selectedWorkspace !== "undefined" &&
-    props.selectedWorkspace.status === "ready";*/
-
   return (
     <Form
       actions={
@@ -190,7 +186,6 @@ export default function DataFileUpload() {
             disabled={
               filesToUpload.length === 0 ||
               uploadingStatus === "in-progress"
-              // !hasReadyWorkspace
             }
             onClick={onUpload}
           >
@@ -203,6 +198,17 @@ export default function DataFileUpload() {
       <SpaceBetween size="l">
         <Container>
           <SpaceBetween size="l">
+            <FormField
+              label="Folder Path" // Added form field for folder path
+              description="Specify the folder path in which the files will be uploaded."
+            >
+              <input
+                type="text"
+                value={folderPath}
+                onChange={handleFolderPathChange} // Linked the input to the folderPath state
+                placeholder="Enter folder path"
+              />
+            </FormField>
             <FormField>
               <FileUpload
                 onChange={({ detail }) => onSetFiles(detail.value)}
@@ -265,9 +271,7 @@ export default function DataFileUpload() {
                 buttonText:
                   uploadingStatus === "success" ? "View files" : undefined,
                 onButtonClick: () =>
-                  navigate(
-                    `/admin/data`
-                  ),
+                  navigate(`/admin/data`),
               },
             ]}
           />
