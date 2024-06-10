@@ -7,6 +7,7 @@ import {
   Header,
   Modal,
   Spinner,
+  FormField, // Ensure FormField is imported
 } from "@cloudscape-design/components";
 import { useCallback, useContext, useEffect, useState } from "react";
 import RouterButton from "../../components/wrappers/router-button";
@@ -33,7 +34,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const [pages, setPages] = useState<any[]>([]);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [showModalDelete, setShowModalDelete] = useState(false);
-  const [folders, setFolders] = useState<any[]>([]); // Added state for folders
+  const [folders, setFolders] = useState<{ [key: string]: any }>({}); // Updated state type for folders
   const [folderPath, setFolderPath] = useState<string>(''); // Added state for folder path
 
   const { items, collectionProps, paginationProps } = useCollection(pages, {
