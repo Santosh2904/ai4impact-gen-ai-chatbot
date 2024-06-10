@@ -9,7 +9,7 @@ import {
   ProgressBar,
   ProgressBarProps,
   SpaceBetween,
-  Select, // Add Select component
+  Select,
 } from "@cloudscape-design/components";
 import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../../common/app-context";
@@ -87,7 +87,7 @@ export default function DataFileUpload() {
   const [uploadPanelDismissed, setUploadPanelDismissed] =
     useState<boolean>(false);
   const [folders, setFolders] = useState<string[]>([]); // State to hold folder names
-  const [selectedFolder, setSelectedFolder] = useState<string>(""); // State to hold selected folder
+  const [selectedFolder, setSelectedFolder] = useState<SelectProps.Option | null>(null); // State to hold selected folder
 
   const onSetFiles = (files: File[]) => {
     const errors: string[] = [];
@@ -122,7 +122,7 @@ export default function DataFileUpload() {
       try {
         const result = await apiClient.knowledgeManagement.getDocuments();
         const folderNames = result.Contents.reduce((acc: string[], item: any) => {
-          const parts = item.Key.split('/');
+          const parts = item.key.split('/');
           if (parts.length > 1) {
             const folder = parts.slice(0, -1).join('/');
             if (!acc.includes(folder)) acc.push(folder);
@@ -159,7 +159,7 @@ export default function DataFileUpload() {
         const fileExtension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
         const fileType = mimeTypes[fileExtension];
         const result = await apiClient.knowledgeManagement.getUploadURL(
-          `${selectedFolder}/${file.name}`,
+          `${selectedFolder.value}/${file.name}`,
           fileType
         );
 
@@ -234,7 +234,7 @@ export default function DataFileUpload() {
             >
               <Select
                 selectedOption={selectedFolder}
-                onChange={({ detail }) => setSelectedFolder(detail.selectedOption.value)}
+                onChange={({ detail }) => setSelectedFolder(detail.selectedOption)}
                 options={folders.map(folder => ({ label: folder, value: folder }))}
                 placeholder="Select a folder"
               />

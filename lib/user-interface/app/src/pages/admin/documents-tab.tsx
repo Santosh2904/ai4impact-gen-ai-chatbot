@@ -31,7 +31,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const [pages, setPages] = useState<any[]>([]);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [showModalDelete, setShowModalDelete] = useState(false);
-  const [folders, setFolders] = useState<{ [key: string]: any }>({}); // State to hold folder structure
+  const [folders, setFolders] = useState<any[]>([]); // State to hold folder structure
 
   const { items, collectionProps, paginationProps } = useCollection(pages, {
     filtering: {
@@ -70,6 +70,18 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     return folderMap;
   };
 
+  const flattenFolderStructure = (folderMap: { [key: string]: any }, path: string = "") => {
+    let flatArray: any[] = [];
+    for (const key in folderMap) {
+      if (folderMap[key].key) {
+        flatArray.push(folderMap[key]);
+      } else {
+        flatArray = flatArray.concat(flattenFolderStructure(folderMap[key], `${path}${key}/`));
+      }
+    }
+    return flatArray;
+  };
+
   const getDocuments = useCallback(
     async (params: { continuationToken?: string; pageIndex?: number }) => {
       setLoading(true);
@@ -87,7 +99,9 @@ export default function DocumentsTab(props: DocumentsTabProps) {
             return [...current, result];
           }
         });
-        setFolders(parseFolderStructure(result.Contents));
+        const folderMap = parseFolderStructure(result.Contents);
+        const flatFolders = flattenFolderStructure(folderMap);
+        setFolders(flatFolders);
       } catch (error) {
         console.error(Utils.getErrorMessage(error));
       }
