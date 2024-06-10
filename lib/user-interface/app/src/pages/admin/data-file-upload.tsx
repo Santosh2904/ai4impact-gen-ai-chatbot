@@ -10,6 +10,7 @@ import {
   ProgressBarProps,
   SpaceBetween,
   Select,
+  SelectProps, // Import SelectProps type
 } from "@cloudscape-design/components";
 import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../../common/app-context";
