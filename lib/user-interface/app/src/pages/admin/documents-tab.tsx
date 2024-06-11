@@ -32,6 +32,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [showModalDelete, setShowModalDelete] = useState(false);
   const [folders, setFolders] = useState<any[]>([]); // State to hold folder structure
+  const [currentFolder, setCurrentFolder] = useState<string>(""); // State to hold the current folder path
 
   const { items, collectionProps, paginationProps } = useCollection(pages, {
     filtering: {
@@ -58,7 +59,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const parseFolderStructure = (contents: any[]) => {
     const folderMap: { [key: string]: any } = {};
     contents.forEach((item) => {
-      const parts = item.key.split("/");
+      const parts = item.Key.split("/");
       let currentLevel = folderMap;
       parts.forEach((part, index) => {
         if (!currentLevel[part]) {
@@ -73,7 +74,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const flattenFolderStructure = (folderMap: { [key: string]: any }, path: string = "") => {
     let flatArray: any[] = [];
     for (const key in folderMap) {
-      if (folderMap[key].key) {
+      if (folderMap[key].Key) {
         flatArray.push(folderMap[key]);
       } else {
         flatArray = flatArray.concat(flattenFolderStructure(folderMap[key], `${path}${key}/`));
@@ -83,13 +84,14 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   };
 
   const getDocuments = useCallback(
-    async (params: { continuationToken?: string; pageIndex?: number }) => {
+    async (params: { continuationToken?: string; pageIndex?: number, prefix?: string }) => {
       setLoading(true);
 
       try {
         const result = await apiClient.knowledgeManagement.getDocuments(
           params?.continuationToken,
-          params?.pageIndex
+          params?.pageIndex,
+          params?.prefix || currentFolder
         );
         setPages((current) => {
           if (typeof params.pageIndex !== "undefined") {
@@ -107,7 +109,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
       }
       setLoading(false);
     },
-    [appContext, props.documentType]
+    [appContext, props.documentType, currentFolder]
   );
 
   useEffect(() => {
@@ -151,7 +153,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     setShowModalDelete(false);
     const apiClient = new ApiClient(appContext);
     await Promise.all(
-      selectedItems.map((s) => apiClient.knowledgeManagement.deleteFile(s.key))
+      selectedItems.map((s) => apiClient.knowledgeManagement.deleteFile(s.Key))
     );
     await getDocuments({ pageIndex: currentPageIndex });
     setSelectedItems([]);
@@ -190,6 +192,12 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     }
   };
 
+  const onFolderClick = (folder: string) => {
+    setCurrentFolder(folder);
+    setCurrentPageIndex(1);
+    getDocuments({ prefix: folder });
+  };
+
   return (
     <>
       <Modal
@@ -212,7 +220,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
       >
         Do you want to delete{" "}
         {selectedItems.length == 1
-          ? `file ${selectedItems[0].key}?`
+          ? `file ${selectedItems[0].Key}?`
           : `${selectedItems.length} files?`}
       </Modal>
       <Table
@@ -227,7 +235,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
         }}
         selectedItems={selectedItems}
         items={folders} // Automatically display the folder contents
-        trackBy="key"
+        trackBy="Key"
         header={
           <Header
             actions={

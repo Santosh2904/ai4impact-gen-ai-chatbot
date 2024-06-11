@@ -10,7 +10,7 @@ import {
   ProgressBarProps,
   SpaceBetween,
   Select,
-  SelectProps, // Import SelectProps type
+  SelectProps,
 } from "@cloudscape-design/components";
 import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../../common/app-context";
@@ -87,7 +87,7 @@ export default function DataFileUpload() {
   const [currentFileName, setCurrentFileName] = useState<string>("");
   const [uploadPanelDismissed, setUploadPanelDismissed] =
     useState<boolean>(false);
-  const [folders, setFolders] = useState<string[]>([]); // State to hold folder names
+  const [folders, setFolders] = useState<SelectProps.Option[]>([]); // State to hold folder names
   const [selectedFolder, setSelectedFolder] = useState<SelectProps.Option | null>(null); // State to hold selected folder
 
   const onSetFiles = (files: File[]) => {
@@ -123,14 +123,14 @@ export default function DataFileUpload() {
       try {
         const result = await apiClient.knowledgeManagement.getDocuments();
         const folderNames = result.Contents.reduce((acc: string[], item: any) => {
-          const parts = item.key.split('/');
+          const parts = item.Key.split('/');
           if (parts.length > 1) {
             const folder = parts.slice(0, -1).join('/');
             if (!acc.includes(folder)) acc.push(folder);
           }
           return acc;
         }, []);
-        setFolders(folderNames);
+        setFolders(folderNames.map(folder => ({ label: folder, value: folder })));
       } catch (error) {
         console.error(Utils.getErrorMessage(error));
       }
@@ -236,7 +236,7 @@ export default function DataFileUpload() {
               <Select
                 selectedOption={selectedFolder}
                 onChange={({ detail }) => setSelectedFolder(detail.selectedOption)}
-                options={folders.map(folder => ({ label: folder, value: folder }))}
+                options={folders}
                 placeholder="Select a folder"
               />
             </FormField>
