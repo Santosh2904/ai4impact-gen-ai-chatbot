@@ -84,14 +84,13 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   };
 
   const getDocuments = useCallback(
-    async (params: { continuationToken?: string; pageIndex?: number, prefix?: string }) => {
+    async (params: { continuationToken?: string; pageIndex?: number; prefix?: string }) => {
       setLoading(true);
 
       try {
         const result = await apiClient.knowledgeManagement.getDocuments(
           params?.continuationToken,
-          params?.pageIndex,
-          params?.prefix || currentFolder
+          params?.pageIndex
         );
         setPages((current) => {
           if (typeof params.pageIndex !== "undefined") {
@@ -109,7 +108,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
       }
       setLoading(false);
     },
-    [appContext, props.documentType, currentFolder]
+    [appContext, props.documentType]
   );
 
   useEffect(() => {
@@ -195,7 +194,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const onFolderClick = (folder: string) => {
     setCurrentFolder(folder);
     setCurrentPageIndex(1);
-    getDocuments({ prefix: folder });
+    getDocuments({ pageIndex: 1, prefix: folder });
   };
 
   return (
