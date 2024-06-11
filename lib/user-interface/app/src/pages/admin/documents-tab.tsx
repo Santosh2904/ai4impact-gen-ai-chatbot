@@ -17,8 +17,10 @@ import { AppContext } from "../../common/app-context";
 import { getColumnDefinition } from "./columns";
 import { Utils } from "../../common/utils";
 import { useCollection } from "@cloudscape-design/collection-hooks";
+// import { DocumentsResult } from "../../../API";
 
 export interface DocumentsTabProps {
+  // workspaceId?: string;
   documentType: RagDocumentType;
 }
 
@@ -31,8 +33,6 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const [pages, setPages] = useState<any[]>([]);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [showModalDelete, setShowModalDelete] = useState(false);
-  const [folders, setFolders] = useState<any[]>([]); // State to hold folder structure
-  const [currentFolder, setCurrentFolder] = useState<string>(""); // State to hold the current folder path
 
   const { items, collectionProps, paginationProps } = useCollection(pages, {
     filtering: {
@@ -56,42 +56,14 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     selection: {},
   });
 
-  const parseFolderStructure = (contents: any[]) => {
-    const folderMap: { [key: string]: any } = {};
-    contents.forEach((item) => {
-      const parts = item.Key.split("/");
-      let currentLevel = folderMap;
-      parts.forEach((part, index) => {
-        if (!currentLevel[part]) {
-          currentLevel[part] = index === parts.length - 1 ? item : {};
-        }
-        currentLevel = currentLevel[part];
-      });
-    });
-    return folderMap;
-  };
-
-  const flattenFolderStructure = (folderMap: { [key: string]: any }, path: string = "") => {
-    let flatArray: any[] = [];
-    for (const key in folderMap) {
-      if (folderMap[key].Key) {
-        flatArray.push(folderMap[key]);
-      } else {
-        flatArray = flatArray.concat(flattenFolderStructure(folderMap[key], `${path}${key}/`));
-      }
-    }
-    return flatArray;
-  };
-
   const getDocuments = useCallback(
-    async (params: { continuationToken?: string; pageIndex?: number; prefix?: string }) => {
+    async (params: { continuationToken?: string; pageIndex?: number }) => {
       setLoading(true);
 
+
       try {
-        const result = await apiClient.knowledgeManagement.getDocuments(
-          params?.continuationToken,
-          params?.pageIndex
-        );
+        const result = await apiClient.knowledgeManagement.getDocuments(params?.continuationToken, params?.pageIndex)
+
         setPages((current) => {
           if (typeof params.pageIndex !== "undefined") {
             current[params.pageIndex - 1] = result;
@@ -100,24 +72,23 @@ export default function DocumentsTab(props: DocumentsTabProps) {
             return [...current, result];
           }
         });
-        const folderMap = parseFolderStructure(result.Contents);
-        const flatFolders = flattenFolderStructure(folderMap);
-        setFolders(flatFolders);
       } catch (error) {
         console.error(Utils.getErrorMessage(error));
       }
+
+      console.log(pages);
       setLoading(false);
     },
     [appContext, props.documentType]
   );
+
 
   useEffect(() => {
     getDocuments({});
   }, [getDocuments]);
 
   const onNextPageClick = async () => {
-    const continuationToken =
-      pages[currentPageIndex - 1]?.NextContinuationToken;
+    const continuationToken = pages[currentPageIndex - 1]?.NextContinuationToken;
 
     if (continuationToken) {
       if (pages.length <= currentPageIndex) {
@@ -127,6 +98,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     }
   };
 
+
   const onPreviousPageClick = async () => {
     setCurrentPageIndex((current) =>
       Math.max(1, Math.min(pages.length - 1, current - 1))
@@ -134,14 +106,15 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   };
 
   const refreshPage = async () => {
+    // console.log(pages[Math.min(pages.length - 1, currentPageIndex - 1)]?.Contents!)
     if (currentPageIndex <= 1) {
       await getDocuments({ pageIndex: currentPageIndex });
     } else {
-      const continuationToken =
-        pages[currentPageIndex - 2]?.NextContinuationToken!;
+      const continuationToken = pages[currentPageIndex - 2]?.NextContinuationToken!;
       await getDocuments({ continuationToken });
     }
   };
+
 
   const columnDefinitions = getColumnDefinition(props.documentType);
 
@@ -152,10 +125,10 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     setShowModalDelete(false);
     const apiClient = new ApiClient(appContext);
     await Promise.all(
-      selectedItems.map((s) => apiClient.knowledgeManagement.deleteFile(s.Key))
+      selectedItems.map((s) => apiClient.knowledgeManagement.deleteFile(s.Key!))
     );
     await getDocuments({ pageIndex: currentPageIndex });
-    setSelectedItems([]);
+    setSelectedItems([])
     setLoading(false);
   };
 
@@ -178,50 +151,45 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     return () => clearInterval(interval);
   });
 
-  const syncKendra = async () => {
+  const syncKendra = async () => {    
     if (syncing) {
+      // setSyncing(false)
       return;
     }
     setSyncing(true);
     try {
       await apiClient.knowledgeManagement.syncKendra();
+      
     } catch (error) {
       console.log(error);
-      setSyncing(false);
+      setSyncing(false)
     }
-  };
-
-  const onFolderClick = (folder: string) => {
-    setCurrentFolder(folder);
-    setCurrentPageIndex(1);
-    getDocuments({ pageIndex: 1, prefix: folder });
-  };
+  }
 
   return (
-    <>
-      <Modal
-        onDismiss={() => setShowModalDelete(false)}
-        visible={showModalDelete}
-        footer={
-          <Box float="right">
-            <SpaceBetween direction="horizontal" size="xs">
-              {" "}
-              <Button variant="link" onClick={() => setShowModalDelete(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" onClick={deleteSelectedFiles}>
-                Ok
-              </Button>
-            </SpaceBetween>{" "}
-          </Box>
-        }
-        header={"Delete session" + (selectedItems.length > 1 ? "s" : "")}
-      >
-        Do you want to delete{" "}
-        {selectedItems.length == 1
-          ? `file ${selectedItems[0].Key}?`
-          : `${selectedItems.length} files?`}
-      </Modal>
+    <><Modal
+      onDismiss={() => setShowModalDelete(false)}
+      visible={showModalDelete}
+      footer={
+        <Box float="right">
+          <SpaceBetween direction="horizontal" size="xs">
+            {" "}
+            <Button variant="link" onClick={() => setShowModalDelete(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={deleteSelectedFiles}>
+              Ok
+            </Button>
+          </SpaceBetween>{" "}
+        </Box>
+      }
+      header={"Delete session" + (selectedItems.length > 1 ? "s" : "")}
+    >
+      Do you want to delete{" "}
+      {selectedItems.length == 1
+        ? `file ${selectedItems[0].Key!}?`
+        : `${selectedItems.length} files?`}
+    </Modal>
       <Table
         {...collectionProps}
         loading={loading}
@@ -233,15 +201,18 @@ export default function DocumentsTab(props: DocumentsTabProps) {
           setSelectedItems(detail.selectedItems);
         }}
         selectedItems={selectedItems}
-        items={folders} // Automatically display the folder contents
+        items={pages[Math.min(pages.length - 1, currentPageIndex - 1)]?.Contents!}
         trackBy="Key"
         header={
           <Header
             actions={
               <SpaceBetween direction="horizontal" size="xs">
                 <Button iconName="refresh" onClick={refreshPage} />
-                <RouterButton href={`/admin/add-data`}>
-                  {"Add Files"}
+                <RouterButton
+                  // href={`/rag/workspaces/add-data?workspaceId=${props.workspaceId}&tab=${props.documentType}`}
+                  href={`/admin/add-data`}
+                >
+                  {'Add Files'}
                 </RouterButton>
                 <Button
                   variant="primary"
@@ -249,8 +220,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
                   onClick={() => {
                     if (selectedItems.length > 0) setShowModalDelete(true);
                   }}
-                  data-testid="submit"
-                >
+                  data-testid="submit">
                   Delete
                 </Button>
                 <Button
@@ -259,6 +229,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
                   onClick={() => {
                     syncKendra();
                   }}
+                // data-testid="submit"
                 >
                   {syncing ? (
                     <>
@@ -279,6 +250,7 @@ export default function DocumentsTab(props: DocumentsTabProps) {
         empty={
           <TableEmptyState
             resourceName={"File"}
+            // createHref={`/rag/workspaces/add-data?workspaceId=${props.workspaceId}&tab=${props.documentType}`}
             createHref={`/admin/add-data`}
             createText={"Add Files"}
           />

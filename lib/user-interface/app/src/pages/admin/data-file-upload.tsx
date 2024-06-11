@@ -9,15 +9,14 @@ import {
   ProgressBar,
   ProgressBarProps,
   SpaceBetween,
-  Select,
-  SelectProps,
 } from "@cloudscape-design/components";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import { AppContext } from "../../common/app-context";
 import { ApiClient } from "../../common/api-client/api-client";
 import { Utils } from "../../common/utils";
 import { FileUploader } from "../../common/file-uploader";
 import { useNavigate } from "react-router-dom";
+
 
 const fileExtensions = new Set([
   ".csv",
@@ -42,29 +41,26 @@ const fileExtensions = new Set([
 ]);
 
 const mimeTypes = {
-  ".pdf": "application/pdf",
-  ".doc": "application/msword",
-  ".docx":
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ".xls": "application/vnd.ms-excel",
-  ".xlsx":
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  ".ppt": "application/vnd.ms-powerpoint",
-  ".pptx":
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  ".txt": "text/plain",
-  ".csv": "text/csv",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml",
-  ".mp3": "audio/mpeg",
-  ".wav": "audio/wav",
-  ".mp4": "video/mp4",
-  ".zip": "application/zip",
-  ".rar": "application/x-rar-compressed",
-  ".tar": "application/x-tar",
+  '.pdf': 'application/pdf',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.ppt': 'application/vnd.ms-powerpoint',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.txt': 'text/plain',
+  '.csv': 'text/csv',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.mp4': 'video/mp4',
+  '.zip': 'application/zip',
+  '.rar': 'application/x-rar-compressed',
+  '.tar': 'application/x-tar'
 };
 
 export default function DataFileUpload() {
@@ -74,12 +70,8 @@ export default function DataFileUpload() {
   const [files, setFiles] = useState<File[]>([]);
   const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
   const [fileErrors, setFileErrors] = useState<string[]>([]);
-  const [globalError, setGlobalError] = useState<string | undefined>(
-    undefined
-  );
-  const [uploadError, setUploadError] = useState<string | undefined>(
-    undefined
-  );
+  const [globalError, setGlobalError] = useState<string | undefined>(undefined);
+  const [uploadError, setUploadError] = useState<string | undefined>(undefined);
   const [uploadingStatus, setUploadingStatus] =
     useState<FlashbarProps.Type>("info");
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -87,8 +79,6 @@ export default function DataFileUpload() {
   const [currentFileName, setCurrentFileName] = useState<string>("");
   const [uploadPanelDismissed, setUploadPanelDismissed] =
     useState<boolean>(false);
-  const [folders, setFolders] = useState<SelectProps.Option[]>([]); // State to hold folder names
-  const [selectedFolder, setSelectedFolder] = useState<SelectProps.Option | null>(null); // State to hold selected folder
 
   const onSetFiles = (files: File[]) => {
     const errors: string[] = [];
@@ -118,35 +108,15 @@ export default function DataFileUpload() {
     setFilesToUpload(filesToUpload);
   };
 
-  useEffect(() => {
-    const fetchFolders = async () => {
-      try {
-        const result = await apiClient.knowledgeManagement.getDocuments();
-        const folderNames = result.Contents.reduce((acc: string[], item: any) => {
-          const parts = item.Key.split('/');
-          if (parts.length > 1) {
-            const folder = parts.slice(0, -1).join('/');
-            if (!acc.includes(folder)) acc.push(folder);
-          }
-          return acc;
-        }, []);
-        setFolders(folderNames.map(folder => ({ label: folder, value: folder })));
-      } catch (error) {
-        console.error(Utils.getErrorMessage(error));
-      }
-    };
-
-    fetchFolders();
-  }, [apiClient]);
-
   const onUpload = async () => {
-    if (!appContext || !selectedFolder) return;
+    if (!appContext) return;
     setUploadingStatus("in-progress");
     setUploadProgress(0);
     setUploadingIndex(1);
     setUploadPanelDismissed(false);
 
     const uploader = new FileUploader();
+    // const apiClient = new ApiClient(appContext);
     const totalSize = filesToUpload.reduce((acc, file) => acc + file.size, 0);
     let accumulator = 0;
     let hasError = false;
@@ -157,17 +127,15 @@ export default function DataFileUpload() {
       let fileUploaded = 0;
 
       try {
-        const fileExtension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+        
+        const fileExtension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
         const fileType = mimeTypes[fileExtension];
-        const result = await apiClient.knowledgeManagement.getUploadURL(
-          `${selectedFolder.value}/${file.name}`,
-          fileType
-        );
-
+        const result = await apiClient.knowledgeManagement.getUploadURL(file.name,fileType);
+        // console.log(result);      
         try {
           await uploader.upload(
             file,
-            result,
+            result, //.data!.getUploadFileURL!,
             fileType,
             (uploaded: number) => {
               fileUploaded = uploaded;
@@ -207,6 +175,11 @@ export default function DataFileUpload() {
     return "in-progress";
   };
 
+  /*const hasReadyWorkspace =
+    typeof props.data.workspace?.value !== "undefined" &&
+    typeof props.selectedWorkspace !== "undefined" &&
+    props.selectedWorkspace.status === "ready";*/
+
   return (
     <Form
       actions={
@@ -217,6 +190,7 @@ export default function DataFileUpload() {
             disabled={
               filesToUpload.length === 0 ||
               uploadingStatus === "in-progress"
+              // !hasReadyWorkspace
             }
             onClick={onUpload}
           >
@@ -229,17 +203,6 @@ export default function DataFileUpload() {
       <SpaceBetween size="l">
         <Container>
           <SpaceBetween size="l">
-            <FormField
-              label="Select Folder"
-              description="Select the folder in which the files will be uploaded."
-            >
-              <Select
-                selectedOption={selectedFolder}
-                onChange={({ detail }) => setSelectedFolder(detail.selectedOption)}
-                options={folders}
-                placeholder="Select a folder"
-              />
-            </FormField>
             <FormField>
               <FileUpload
                 onChange={({ detail }) => onSetFiles(detail.value)}
@@ -302,7 +265,9 @@ export default function DataFileUpload() {
                 buttonText:
                   uploadingStatus === "success" ? "View files" : undefined,
                 onButtonClick: () =>
-                  navigate(`/admin/data`),
+                  navigate(
+                    `/admin/data`
+                  ),
               },
             ]}
           />
